@@ -1,0 +1,126 @@
+题目
+案例一、区域人群流量分析：
+1.	数据准备：
+(TA_5MIN_REGION_RESIDENT_IMSI_BITMAP)-5分钟区域驻留明细位图
+建表语句：
+ CREATE TABLE default.TA_5MIN_REGION_RESIDENT_IMSI_BITMAP
+(
+    `REGION_ID` String COMMENT '区域ID',
+    `5MIN` UInt64 COMMENT '5分钟',
+    `IMSI_INDEXES` AggregateFunction(groupBitmap, UInt32) COMMENT '区域用户位图',
+    `RESIDENT_5MIN_BITMAP` AggregateFunction(groupBitmap, UInt32) COMMENT '驻留5分钟用户位图',
+    `RESIDENT_10MIN_BITMAP` AggregateFunction(groupBitmap, UInt32) COMMENT '驻留10分钟用户位图',
+    `RESIDENT_20MIN_BITMAP` AggregateFunction(groupBitmap, UInt32) COMMENT '驻留20分钟用户位图',
+    `RESIDENT_40MIN_BITMAP` AggregateFunction(groupBitmap, UInt32) COMMENT '驻留40分钟用户位图'
+)
+ENGINE = MergeTree
+ORDER BY (REGION_ID, `5MIN`)
+插入数据：
+insert into TA_5MIN_REGION_RESIDENT_IMSI_BITMAP(REGION_ID,5MIN,IMSI_INDEXES) values('AH100501000008',1675396500000,bitmapBuild([1, 2, 3, 4, 5,6,7,8,79856]));
+insert into TA_5MIN_REGION_RESIDENT_IMSI_BITMAP(REGION_ID,5MIN,IMSI_INDEXES) values('AH100501000008',1675396800000,bitmapBuild([1, 2, 3, 4, 5,6,7,8,9,79856]));
+insert into TA_5MIN_REGION_RESIDENT_IMSI_BITMAP(REGION_ID,5MIN,IMSI_INDEXES) values('AH100501000008',1675397100000,bitmapBuild([1, 2, 5,6,7,8,9,79856]));
+
+
+
+2.	题目介绍
+通过数据准备环节的(TA_5MIN_REGION_RESIDENT_IMSI_BITMAP)-5分钟区域驻留明细位图表，如果此时要分析某个区域在某个时间节点的人流分析结果，该如何求解呢？
+请分析2023/2/03 12:00:00 的 区域id=AH100501000008的5min时间跨度的流入、流出、保持人数。
+业务口径（分析某区域，针对某一时刻B，B的上一时间跨度时刻A）：
+流入人群：上一时刻A不在该区域，此刻B在该区域的人
+保持人群：上一时刻A在该区域，此刻B也在该区域的人
+流出人群：上一时刻A在该区域，此刻B不在该区域的人
+
+备注：时间得转换成时间戳，库里存的格式是时间戳。
+3.	解题思路：
+请将您的解题思路/逻辑
+
+
+
+4.	解答：
+请将您的结果代码补充填写在这里（sql）
+流入：
+
+保持：
+
+流出：
+
+
+
+案例二、区域人群画像分析：
+1.	数据准备：
+(TA_PORTRAIT_IMSI_BITMAP)-用户画像位图
+建表语句：
+ CREATE TABLE default.TA_PORTRAIT_IMSI_BITMAP (
+	`PORTRAIT_ID` Int32 COMMENT '画像id',
+	`PORTRAIT_VALUE` String COMMENT '画像值',
+	`PORTRAIT_BITMAP` AggregateFunction ( groupBitmap,UInt32 ) COMMENT '画像枚举值位图',
+	`CUR_TIME` DateTime DEFAULT now( ) COMMENT '创建时间',
+	`COMMENT` String COMMENT '描述' 
+) ENGINE = MergeTree 
+ORDER BY
+	( PORTRAIT_ID, PORTRAIT_VALUE );
+插入数据：
+INSERT INTO TA_PORTRAIT_IMSI_BITMAP ( CUR_TIME, PORTRAIT_ID, PORTRAIT_VALUE, PORTRAIT_BITMAP )
+VALUES
+	( '2023-01-09 14:23:59', 14, '1', bitmapBuild ( [ toUInt32 ( 1 ), toUInt32 ( 2 ), toUInt32 ( 3 ) ] ) );
+INSERT INTO TA_PORTRAIT_IMSI_BITMAP ( CUR_TIME, PORTRAIT_ID, PORTRAIT_VALUE, PORTRAIT_BITMAP )
+VALUES
+	( '2023-01-09 14:23:59', 14, '27', bitmapBuild ( [ toUInt32 ( 4 ), toUInt32 ( 5 ), toUInt32 ( 6 ) ] ) );
+INSERT INTO TA_PORTRAIT_IMSI_BITMAP ( CUR_TIME, PORTRAIT_ID, PORTRAIT_VALUE, PORTRAIT_BITMAP )
+VALUES
+	(
+		'2023-01-09 14:23:59',
+		14,
+		'48',
+	bitmapBuild ( [ toUInt32 ( 7 ), toUInt32 ( 8 ), toUInt32 ( 9 ), toUInt32 ( 79856 ) ] ) 
+	);
+
+
+2.	题目介绍
+通过数据准备环节的(TA_PORTRAIT_IMSI_BITMAP)-用户画像位图表，如果此时要分析2023/2/03 11:55:00 至 2023/2/03 12:05:00的区域id=AH100501000008的画像统计结果，该如何求解呢？
+库表中的
+3.	解题思路：
+请将您的解题思路/逻辑
+
+
+
+4.	解答：
+请将您的结果代码补充填写在这里（sql）
+
+
+
+
+案例三、区域人群手机号明细：
+5.	数据准备：
+(T_DIM_D_USER_INDEX)-用户位图索引表
+建表语句：
+ CREATE TABLE default.T_DIM_D_USER_INDEX ( `IMSI` String COMMENT 'IMSI', `MSISDN` String COMMENT '手机号码', `BITMAP_ID` UInt32 COMMENT '用户排序索引' ) ENGINE = MergeTree 
+ORDER BY
+	BITMAP_ID;
+插入数据：
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d29bf3e','d83d08198accd4fc1e7f2c566d29bf3e',1);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d29dd2k','d83d08198accd4fc1e7f2c566d29dd2k',2);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999pl','d83d08198accd4fc1e7f2c566d2999pl',3);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999p1','d83d08198accd4fc1e7f2c566d2999p1',4);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999p2','d83d08198accd4fc1e7f2c566d2999p2',5);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999p3','d83d08198accd4fc1e7f2c566d2999p3',6);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999p4','d83d08198accd4fc1e7f2c566d2999p4',7);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999p5','d83d08198accd4fc1e7f2c566d2999p5',8);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999p6','d83d08198accd4fc1e7f2c566d2999p6',9);
+insert into T_DIM_D_USER_INDEX(IMSI,MSISDN,BITMAP_ID) values('d83d08198accd4fc1e7f2c566d2999p7','d83d08198accd4fc1e7f2c566d2999p7',79856);
+
+
+6.	题目介绍
+结合案例一，如果此时要分析2023/2/03 11:55:00至2023/2/03 12:05:00的区域id=AH100501000008手机号明细，该如何求解呢？
+7.	解题思路：
+请将您的解题思路/逻辑
+
+
+
+8.	解答：
+请将您的结果代码补充填写在这里（sql）
+
+
+
+
+
