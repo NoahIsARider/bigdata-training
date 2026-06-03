@@ -1,0 +1,89 @@
+services:
+  hadoop:
+    build:
+      context: ./hadoop
+    container_name: hadoop
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+      - "9864:9864"
+    volumes:
+      - hadoop-data:/tmp/hadoop-hduser
+    networks:
+      - bigdata
+
+  kafka:
+    image: apache/kafka:4.1.2
+    container_name: kafka
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/tmp/kraft-combined-logs
+    networks:
+      - bigdata
+
+  flume-hdfs:
+    build:
+      context: ./flume
+    container_name: flume-hdfs
+    depends_on:
+      - hadoop
+    environment:
+      - FLUME_CONF=flume-hdfs.conf
+    volumes:
+      - shared-data:/data
+      - ./flume/conf:/opt/project/conf:ro
+    networks:
+      - bigdata
+
+  flume-kafka:
+    build:
+      context: ./flume
+    container_name: flume-kafka
+    depends_on:
+      - kafka
+    environment:
+      - FLUME_CONF=flume-kafka.conf
+    volumes:
+      - shared-data:/data
+      - ./flume/conf:/opt/project/conf:ro
+    networks:
+      - bigdata
+
+  generator:
+    build:
+      context: ./generator
+    container_name: data-generator
+    volumes:
+      - shared-data:/data
+    networks:
+      - bigdata
+
+  spark:
+    image: apache/spark:3.5.1-scala2.12-java17-python3-ubuntu
+    container_name: spark-client
+    volumes:
+      - ./spark:/opt/spark/jobs:ro
+    networks:
+      - bigdata
+
+volumes:
+  hadoop-data:
+  kafka-data:
+  shared-data:
+
+networks:
+  bigdata:
+    driver: bridge

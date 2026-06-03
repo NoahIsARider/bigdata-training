@@ -1,0 +1,45 @@
+services:
+  hbase:
+    build:
+      context: ./hbase
+    container_name: assignment2-hbase
+    hostname: hbase
+    volumes:
+      - hbase-data:/opt/hbase-data
+
+  hbaseprocess:
+    build:
+      context: ./runner
+    working_dir: /workspace/hbaseProcess
+    depends_on:
+      - hbase
+    environment:
+      - HBASE_ZK_QUORUM=hbase
+      - HBASE_ZK_PORT=2181
+      - HBASE_ROOTDIR=file:///opt/hbase-data/rootdir
+      - MAVEN_OPTS=-Dmaven.repo.local=/m2
+    volumes:
+      - ./hbaseProcess:/workspace/hbaseProcess
+      - maven-cache:/m2
+
+  region-flow-api:
+    build:
+      context: ./runner
+    working_dir: /workspace/region-flow-api
+    depends_on:
+      - hbase
+    environment:
+      - HBASE_ZK_QUORUM=hbase
+      - HBASE_ZK_PORT=2181
+      - HBASE_ROOTDIR=file:///opt/hbase-data/rootdir
+      - API_PORT=8080
+      - MAVEN_OPTS=-Dmaven.repo.local=/m2
+    volumes:
+      - ./region-flow-api:/workspace/region-flow-api
+      - maven-cache:/m2
+    ports:
+      - "8080:8080"
+
+volumes:
+  hbase-data:
+  maven-cache:
