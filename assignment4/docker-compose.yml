@@ -1,0 +1,50 @@
+services:
+  hbase:
+    build:
+      context: ./hbase
+    container_name: assignment4-hbase
+    hostname: hbase
+    ports:
+      - "16011:16010"
+      - "9091:9090"
+    volumes:
+      - hbase-data:/opt/hbase-data
+
+  flink-jobmanager:
+    build:
+      context: ./flink
+    container_name: assignment4-flink-jobmanager
+    command: jobmanager
+    depends_on:
+      - hbase
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./app:/workspace/app
+      - ./data:/workspace/data
+      - ./artifacts:/workspace/artifacts
+
+  flink-taskmanager:
+    build:
+      context: ./flink
+    container_name: assignment4-flink-taskmanager
+    command: taskmanager
+    depends_on:
+      - flink-jobmanager
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        rest.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    volumes:
+      - ./app:/workspace/app
+      - ./data:/workspace/data
+      - ./artifacts:/workspace/artifacts
+
+volumes:
+  hbase-data:
